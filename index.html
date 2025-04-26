@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesa de Áudio e Edição de Vídeo</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to right, #e0f7fa, #e1bee7);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        h2 {
+            color: #3949ab;
+        }
+        .bar {
+            width: 100%;
+            height: 20px;
+            background-color: #cfd8dc;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        .level {
+            height: 100%;
+            width: 0%;
+            background-color: #00c853;
+            transition: width 0.1s;
+        }
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+        button {
+            margin-top: 15px;
+            padding: 12px 20px;
+            font-size: 16px;
+            background: #3949ab;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #1e88e5;
+        }
+        video {
+            width: 100%;
+            margin-top: 20px;
+            border-radius: 12px;
+        }
+        footer {
+            margin-top: 40px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Mesa Profissional de Áudio e Edição de Vídeo</h2>
+        
+        <button onclick="startCamera()">📹 Ativar Câmera</button>
+        <video id="videoElement" autoplay muted></video>
+        
+        <button onclick="startMicrophone()">🎧 Ativar Microfone</button>
+        <div class="bar">
+            <div class="level" id="volumeLevel"></div>
+        </div>
+        
+        <h3>Ganho do Microfone</h3>
+        <input type="range" id="gainControl" min="1" max="5" step="0.1" value="1">
+
+        <h3>Equalizador</h3>
+        <label>Graves</label>
+        <input type="range" id="bassControl" min="-20" max="20" step="1" value="0">
+        
+        <label>Médios</label>
+        <input type="range" id="midControl" min="-20" max="20" step="1" value="0">
+        
+        <label>Agudos</label>
+        <input type="range" id="trebleControl" min="-20" max="20" step="1" value="0">
+
+        <footer>
+            Desenvolvido por <strong>Rivonildo Azevedo</strong> - 2025
+        </footer>
+    </div>
+
+    <script>
+        let audioContext, micStream, gainNode, analyser, dataArray;
+        let bassFilter, midFilter, trebleFilter;
+
+        function startMicrophone() {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                micStream = audioContext.createMediaStreamSource(stream);
+                
+                gainNode = audioContext.createGain();
+                gainNode.gain.value = parseFloat(document.getElementById("gainControl").value);
+
+                bassFilter = audioContext.createBiquadFilter();
+                bassFilter.type = "lowshelf";
+                bassFilter.frequency.setValueAtTime(100, audioContext.currentTime);
+
+                midFilter = audioContext.createBiquadFilter();
+                midFilter.type = "peaking";
+                midFilter.frequency.setValueAtTime(1000, audioContext.currentTime);
+
+                trebleFilter = audioContext.createBiquadFilter();
+                trebleFilter.type = "highshelf";
+                trebleFilter.frequency.setValueAtTime(3000, audioContext.currentTime);
+
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                micStream.connect(gainNode);
+                gainNode.connect(bassFilter);
+                bassFilter.connect(midFilter);
+                midFilter.connect(trebleFilter);
+                trebleFilter.connect(analyser);
+                analyser.connect(audioContext.destination);
+
+                updateVolume();
+            }).catch(error => {
+                alert("Erro ao acessar o microfone: " + error.message);
+            });
+        }
+
+        function updateVolume() {
+            requestAnimationFrame(updateVolume);
+            analyser.getByteFrequencyData(dataArray);
+            let volume = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+            let volumePercent = Math.min(100, (volume / 128) * 100);
+            document.getElementById("volumeLevel").style.width = volumePercent + "%";
+        }
+
+        document.getElementById("gainControl").addEventListener("input", function() {
+            if (gainNode) gainNode.gain.value = parseFloat(this.value);
+        });
+
+        document.getElementById("bassControl").addEventListener("input", function() {
+            if (bassFilter) bassFilter.gain.setValueAtTime(parseFloat(this.value), audioContext.currentTime);
+        });
+
+        document.getElementById("midControl").addEventListener("input", function() {
+            if (midFilter) midFilter.gain.setValueAtTime(parseFloat(this.value), audioContext.currentTime);
+        });
+
+        document.getElementById("trebleControl").addEventListener("input", function() {
+            if (trebleFilter) trebleFilter.gain.setValueAtTime(parseFloat(this.value), audioContext.currentTime);
+        });
+
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+                document.getElementById("videoElement").srcObject = stream;
+            }).catch(error => {
+                alert("Erro ao acessar a câmera: " + error.message);
+            });
+        }
+    </script>
+</body>
+</html>
