@@ -1,71 +1,60 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mesa de Áudio e Edição de Vídeo</title>
+    <title>Calculadora de IMC</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            text-align: center;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(to right, #e0f7fa, #e1bee7);
-            min-height: 100vh;
             display: flex;
-            flex-direction: column;
             justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #e0f7fa, #a7ffeb);
         }
         .container {
-            max-width: 800px;
-            margin: 30px auto;
-            padding: 30px;
             background: white;
-            border-radius: 15px;
+            padding: 30px;
+            border-radius: 12px;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 300px;
         }
         h2 {
-            color: #3949ab;
+            color: #00796b;
+            margin-bottom: 20px;
         }
-        .bar {
-            width: 100%;
-            height: 20px;
-            background-color: #cfd8dc;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 15px;
-        }
-        .level {
-            height: 100%;
-            width: 0%;
-            background-color: #00c853;
-            transition: width 0.1s;
-        }
-        input[type="range"] {
-            width: 100%;
+        input {
+            width: 90%;
+            padding: 10px;
             margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
         }
         button {
-            margin-top: 15px;
-            padding: 12px 20px;
-            font-size: 16px;
-            background: #3949ab;
+            background: #00796b;
             color: white;
+            padding: 10px 20px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            transition: background 0.3s;
+            margin-top: 10px;
+            font-size: 16px;
         }
         button:hover {
-            background: #1e88e5;
+            background: #004d40;
         }
-        video {
-            width: 100%;
-            margin-top: 20px;
-            border-radius: 12px;
+        #resultado {
+            margin-top: 15px;
+            font-size: 18px;
+            color: #004d40;
+            font-weight: bold;
         }
         footer {
-            margin-top: 40px;
+            margin-top: 20px;
             font-size: 14px;
             color: #555;
         }
@@ -73,105 +62,36 @@
 </head>
 <body>
     <div class="container">
-        <h2>Mesa Profissional de Áudio e Edição de Vídeo</h2>
-        
-        <button onclick="startCamera()">📹 Ativar Câmera</button>
-        <video id="videoElement" autoplay muted></video>
-        
-        <button onclick="startMicrophone()">🎧 Ativar Microfone</button>
-        <div class="bar">
-            <div class="level" id="volumeLevel"></div>
-        </div>
-        
-        <h3>Ganho do Microfone</h3>
-        <input type="range" id="gainControl" min="1" max="5" step="0.1" value="1">
-
-        <h3>Equalizador</h3>
-        <label>Graves</label>
-        <input type="range" id="bassControl" min="-20" max="20" step="1" value="0">
-        
-        <label>Médios</label>
-        <input type="range" id="midControl" min="-20" max="20" step="1" value="0">
-        
-        <label>Agudos</label>
-        <input type="range" id="trebleControl" min="-20" max="20" step="1" value="0">
-
+        <h2>Calculadora de IMC</h2>
+        <input type="number" id="peso" placeholder="Digite seu peso (kg)">
+        <input type="number" id="altura" placeholder="Digite sua altura (m)">
+        <button onclick="calcularIMC()">Calcular</button>
+        <p id="resultado"></p>
         <footer>
             Desenvolvido por <strong>Rivonildo Azevedo</strong> - 2025
         </footer>
     </div>
 
     <script>
-        let audioContext, micStream, gainNode, analyser, dataArray;
-        let bassFilter, midFilter, trebleFilter;
-
-        function startMicrophone() {
-            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                micStream = audioContext.createMediaStreamSource(stream);
-                
-                gainNode = audioContext.createGain();
-                gainNode.gain.value = parseFloat(document.getElementById("gainControl").value);
-
-                bassFilter = audioContext.createBiquadFilter();
-                bassFilter.type = "lowshelf";
-                bassFilter.frequency.setValueAtTime(100, audioContext.currentTime);
-
-                midFilter = audioContext.createBiquadFilter();
-                midFilter.type = "peaking";
-                midFilter.frequency.setValueAtTime(1000, audioContext.currentTime);
-
-                trebleFilter = audioContext.createBiquadFilter();
-                trebleFilter.type = "highshelf";
-                trebleFilter.frequency.setValueAtTime(3000, audioContext.currentTime);
-
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-                dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-                micStream.connect(gainNode);
-                gainNode.connect(bassFilter);
-                bassFilter.connect(midFilter);
-                midFilter.connect(trebleFilter);
-                trebleFilter.connect(analyser);
-                analyser.connect(audioContext.destination);
-
-                updateVolume();
-            }).catch(error => {
-                alert("Erro ao acessar o microfone: " + error.message);
-            });
-        }
-
-        function updateVolume() {
-            requestAnimationFrame(updateVolume);
-            analyser.getByteFrequencyData(dataArray);
-            let volume = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-            let volumePercent = Math.min(100, (volume / 128) * 100);
-            document.getElementById("volumeLevel").style.width = volumePercent + "%";
-        }
-
-        document.getElementById("gainControl").addEventListener("input", function() {
-            if (gainNode) gainNode.gain.value = parseFloat(this.value);
-        });
-
-        document.getElementById("bassControl").addEventListener("input", function() {
-            if (bassFilter) bassFilter.gain.setValueAtTime(parseFloat(this.value), audioContext.currentTime);
-        });
-
-        document.getElementById("midControl").addEventListener("input", function() {
-            if (midFilter) midFilter.gain.setValueAtTime(parseFloat(this.value), audioContext.currentTime);
-        });
-
-        document.getElementById("trebleControl").addEventListener("input", function() {
-            if (trebleFilter) trebleFilter.gain.setValueAtTime(parseFloat(this.value), audioContext.currentTime);
-        });
-
-        function startCamera() {
-            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-                document.getElementById("videoElement").srcObject = stream;
-            }).catch(error => {
-                alert("Erro ao acessar a câmera: " + error.message);
-            });
+        function calcularIMC() {
+            let peso = document.getElementById("peso").value;
+            let altura = document.getElementById("altura").value;
+            if (peso > 0 && altura > 0) {
+                let imc = (peso / (altura * altura)).toFixed(2);
+                let classificacao = "";
+                if (imc < 18.5) {
+                    classificacao = "Abaixo do peso";
+                } else if (imc < 24.9) {
+                    classificacao = "Peso normal";
+                } else if (imc < 29.9) {
+                    classificacao = "Sobrepeso";
+                } else {
+                    classificacao = "Obesidade";
+                }
+                document.getElementById("resultado").innerText = `Seu IMC é ${imc} - ${classificacao}`;
+            } else {
+                document.getElementById("resultado").innerText = "Por favor, insira valores válidos!";
+            }
         }
     </script>
 </body>
